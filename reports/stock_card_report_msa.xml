@@ -105,6 +105,7 @@
                         <div class="act_as_cell" />
                         <div class="act_as_cell" />
                         <div class="act_as_cell" />
+                        <div class="act_as_cell" />
                         <div class="act_as_cell right">
                             <t t-esc="'{0:,.3f}'.format(initial)" />
                         </div>
@@ -145,7 +146,7 @@
             <div class="act_as_row labels">
                 <div class="act_as_cell">Date From</div>
                 <div class="act_as_cell">Date To</div>
-                <div class="act_as_cell">Location</div>
+                <div class="act_as_cell">Valuation</div>
             </div>
             <div class="act_as_row">
                 <div class="act_as_cell">
@@ -155,7 +156,7 @@
                     <span t-field="o.date_to" />
                 </div>
                 <div class="act_as_cell">
-                    <span t-field="o.location_id" />
+                    <span>FIFO</span>
                 </div>
             </div>
         </div>
@@ -166,7 +167,8 @@
             <div class="act_as_row labels">
                 <div class="act_as_cell">Date</div>
                 <div class="act_as_cell">Reference</div>
-                <div class="act_as_cell">Origin</div>
+                <div class="act_as_cell">Cust Invoice / RR</div>
+                <div class="act_as_cell">SI No. / PO</div>
                 <div class="act_as_cell">Input Qty</div>
                 <div class="act_as_cell">Input Cost</div>
                 <div class="act_as_cell">Input Value</div>
@@ -186,13 +188,15 @@
                 <t t-esc="product_line.date.strftime('%Y-%m-%d')" />
             </div>
             <div class="act_as_cell left">
-                <t t-esc="product_line.reference" />
+                    <t t-esc="product_line.reference" />
             </div>
-            <div class="act_as_cell left">
-                <t t-esc="product_line.origin" />
-            </div>
-
             <t t-if="product_line.picking_code == 'incoming'">
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.reference" />
+                </div>
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.origin" />
+                </div>
                 <div class="act_as_cell right">
                     <t t-esc="'{0:,.3f}'.format(product_line.product_in)" />
                 </div>
@@ -220,6 +224,12 @@
             </t>
 
             <t t-if="product_line.picking_code == 'outgoing'">
+                <div class="act_as_cell left">
+                <t t-esc="product_line.am_name" />
+                </div>
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.am_si_number" />
+                </div>
                 <div class="act_as_cell right">
                 </div>
                 <div class="act_as_cell right">

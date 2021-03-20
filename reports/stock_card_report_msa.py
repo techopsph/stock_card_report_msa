@@ -28,6 +28,9 @@ class StockCardView(models.TransientModel):
     origin_alt = fields.Char()
     reference_alt = fields.Char()
     picking_code = fields.Char()
+    am_name = fields.Char()
+    am_si_number = fields.Char()
+
     product_in_cost = fields.Float()
     product_out_cost = fields.Float()
     product_in_value = fields.Float()
@@ -58,6 +61,7 @@ class StockCardReport(models.TransientModel):
         self._cr.execute(
             """
             SELECT 
+
                 move.date,
                 move.product_id, 
                 move.product_qty, 
@@ -71,6 +75,9 @@ class StockCardReport(models.TransientModel):
                 move.price_unit,
                 move.price_unit*move.product_qty AS price_unit_value, 
                 spt.code AS picking_code,
+                
+                am.name AS am_name,
+                am.x_ref_sales_invoice AS am_si_number,
 
                 CASE WHEN spt.code = 'incoming' 
                     THEN move.product_qty END AS product_in,
