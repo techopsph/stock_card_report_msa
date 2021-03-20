@@ -27,10 +27,11 @@ class StockCardView(models.TransientModel):
     origin = fields.Char()
     origin_alt = fields.Char()
     reference_alt = fields.Char()
-    #product_in_cost = fields.Float()
-    #product_out_cost = fields.Float()
-    #product_in_value = fields.Float()
-    #product_out_value = fields.Float()
+    picking_code = fields.Char()
+    product_in_cost = fields.Float()
+    product_out_cost = fields.Float()
+    product_in_value = fields.Float()
+    product_out_value = fields.Float()
 
 
 class StockCardReport(models.TransientModel):
@@ -69,17 +70,31 @@ class StockCardReport(models.TransientModel):
                 move.origin,
                 move.price_unit,
                 move.price_unit*move.product_qty AS price_unit_value, 
+                spt.code AS picking_code,
 
                 CASE WHEN spt.code = 'incoming' 
                     THEN move.product_qty END AS product_in,
+                CASE WHEN spt.code = 'incoming' 
+                    THEN pol.price_unit END AS product_in_cost,
+                CASE WHEN spt.code = 'incoming' 
+                    THEN move.product_qty*pol.price_unit END AS product_in_value,
+
                 CASE WHEN spt.code = 'outgoing'
                     THEN move.product_qty END AS product_out,
+                CASE WHEN spt.code = 'outgoing' 
+                    THEN aml.price_unit END AS product_out_cost,
+                CASE WHEN spt.code = 'outgoing' 
+                    THEN move.product_qty*aml.price_unit END AS product_out_value,
+
                 CASE WHEN move.date < %s THEN True else False end as is_initial
 
             FROM stock_move move
 
             LEFT JOIN (SELECT id, code FROM stock_picking_type) AS spt ON move.picking_type_id=spt.id
-            
+            LEFT JOIN (SELECT id, price_unit FROM purchase_order_line) AS pol ON move.purchase_line_id=pol.id
+            LEFT JOIN (SELECT id, name, invoice_origin, x_ref_sales_invoice, invoice_date FROM account_move) AS am ON am.invoice_origin=move.origin
+            LEFT JOIN (SELECT id, move_id, product_id, price_unit FROM account_move_line WHERE product_id IS NOT null) AS aml ON aml.move_id=am.id AND aml.product_id=move.product_id
+
             WHERE spt.code IN ('incoming', 'outgoing')
                 and move.state = 'done' and move.product_id in %s
                 and CAST(move.date AS date) <= %s
@@ -99,6 +114,18 @@ class StockCardReport(models.TransientModel):
         product_input_qty = sum(product_line.mapped("product_in"))
         product_output_qty = sum(product_line.mapped("product_out"))
         return product_input_qty - product_output_qty
+    
+    def _get_initial_value(self, product_line):
+        product_input_value = sum(product_line.mapped("product_in_value"))
+        product_output_value = sum(product_line.mapped("product_out_value"))
+        return product_input_value - product_output_value
+
+    def _get_initial_cost(self, initial_value, initial):
+        if initial == 0:
+            initial_cost = 0.00
+        else:
+            initial_cost = initial_value / initial
+        return initial_cost
 
     def print_report(self, report_type="qweb"):
         self.ensure_one()
