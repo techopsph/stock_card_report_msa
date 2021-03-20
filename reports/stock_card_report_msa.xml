@@ -168,7 +168,7 @@
                 <div class="act_as_cell">Date</div>
                 <div class="act_as_cell">Reference</div>
                 <div class="act_as_cell">Cust Invoice / RR</div>
-                <div class="act_as_cell">SI No. / PO</div>
+                <div class="act_as_cell">SO / SI No. / PO</div>
                 <div class="act_as_cell">Input Qty</div>
                 <div class="act_as_cell">Input Cost</div>
                 <div class="act_as_cell">Input Value</div>
@@ -225,9 +225,10 @@
 
             <t t-if="product_line.picking_code == 'outgoing'">
                 <div class="act_as_cell left">
-                <t t-esc="product_line.am_name" />
+                    <t t-esc="product_line.am_name" />
                 </div>
                 <div class="act_as_cell left">
+                    <t t-esc="product_line.origin" /> / 
                     <t t-esc="product_line.am_si_number" />
                 </div>
                 <div class="act_as_cell right">

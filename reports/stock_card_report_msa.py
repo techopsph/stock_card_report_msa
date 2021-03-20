@@ -91,7 +91,7 @@ class StockCardReport(models.TransientModel):
                 CASE WHEN spt.code = 'outgoing' 
                     THEN aml.price_unit END AS product_out_cost,
                 CASE WHEN spt.code = 'outgoing' 
-                    THEN move.product_qty*aml.price_unit END AS product_out_value,
+                    THEN move.product_qty*aml.purchase_price END AS product_out_value,
 
                 CASE WHEN move.date < %s THEN True else False end as is_initial
 
