@@ -107,31 +107,29 @@
                         <div class="act_as_cell" />
                         <div class="act_as_cell" />
                         <div class="act_as_cell right">
-                            <t t-esc="'{0:,.3f}'.format(initial)" />
+                            <t t-esc="'{0:,.2f}'.format(initial)" />
                         </div>
                         <div class="act_as_cell right">
-                            <t t-esc="'{0:,.3f}'.format(initial_cost)" />
+                            <t t-esc="'{0:,.2f}'.format(initial_cost)" />
                         </div>
                         <div class="act_as_cell right">
-                            <t t-esc="'{0:,.3f}'.format(initial_value)" />
+                            <t t-esc="'{0:,.2f}'.format(initial_value)" />
                         </div>
                     </div>
                     <!-- Display each lines -->
                     <t t-set="product_balance_qty" t-value="initial" />
-                    <t t-set="product_balance_cost" t-value="initial_cost" />
                     <t t-set="product_balance_value" t-value="initial_value" />
-                    
                     <t
                         t-foreach="o.results.filtered(lambda l: l.product_id == product and not l.is_initial)"
                         t-as="product_line"
                     >
                         <t
                             t-set="product_balance_qty"
-                            t-value="product_balance_qty + product_line.product_in - product_line.product_out"
+                            t-value="product_balance_qty + product_line.product_int + product_line.product_in - product_line.product_out"
                         />
                         <t
                             t-set="product_balance_value"
-                            t-value="product_balance_value + product_line.product_in_value - product_line.product_out_value"
+                            t-value="product_balance_value + product_line.price_unit_value"
                         />
                         <t t-call="stock_card_report_msa.report_stock_card_lines" />
                     </t>
@@ -198,32 +196,23 @@
                     <t t-esc="product_line.origin" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_in)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_in)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_in_cost)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_in_cost)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_in_value)" />
-                </div>
-                <div class="act_as_cell right">
-                </div>
-                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_in_value)" />
                 </div>
                 <div class="act_as_cell right">
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_qty)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_value / product_balance_qty)" />
-                </div>
-                <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_value)" />
                 </div>
             </t>
 
-            <t t-if="product_line.picking_code == 'outgoing'">
+            <t t-elif="product_line.picking_code == 'outgoing'">
                 <div class="act_as_cell left">
                     <t t-esc="product_line.am_name" />
                 </div>
@@ -238,24 +227,82 @@
                 <div class="act_as_cell right">
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_out)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_out)" />
+                </div>
+                <t t-if="product_line.product_out_cost > 0">
+                    <div class="act_as_cell right">
+                        <t t-esc="'{0:,.2f}'.format(product_line.product_out_cost)" />
+                    </div>
+                    <div class="act_as_cell right">
+                        <t t-esc="'{0:,.2f}'.format(product_line.product_out_value)" />
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="act_as_cell right">
+                        <t t-esc="'{0:,.2f}'.format(product_line.price_unit)" />
+                    </div>
+                    <div class="act_as_cell right">
+                        <t t-esc="'{0:,.2f}'.format(product_line.price_unit_value)" />
+                    </div>
+                </t>
+            </t>
+            
+            <t t-elif="product_line.picking_code == 'internal'">
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.reference" />
+                </div>
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.origin" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_out_cost)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_qty)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_line.product_out_value)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.price_unit)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_qty)" />
+                    <t t-esc="'{0:,.2f}'.format(product_line.price_unit_value)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_value / product_balance_qty)" />
                 </div>
                 <div class="act_as_cell right">
-                    <t t-esc="'{0:,.3f}'.format(product_balance_value)" />
+                </div>
+                <div class="act_as_cell right">
                 </div>
             </t>
+
+            <t t-else="">
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.reference" />
+                </div>
+                <div class="act_as_cell left">
+                    <t t-esc="product_line.origin" />
+                </div>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_line.product_int)" />
+                </div>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_line.price_unit)" />
+                </div>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_line.price_unit_value)" />
+                </div>
+                <div class="act_as_cell right">
+                </div>
+                <div class="act_as_cell right">
+                </div>
+                <div class="act_as_cell right">
+                </div>
+            </t>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_balance_qty)" />
+                </div>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_line.price_unit)" />
+                </div>
+                <div class="act_as_cell right">
+                    <t t-esc="'{0:,.2f}'.format(product_balance_value)" />
+                </div>
         </div>
    </template>
 

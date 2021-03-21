@@ -76,6 +76,14 @@ class ReportStockCardReportXlsx(models.AbstractModel):
                 },
                 "width": 25,
             },
+            "3_so_si_po": {
+                "header": {"value": "SO / SI No. / PO"},
+                "data": {
+                    "value": self._render("origin"),
+                    "format": self.format_tcell_left,
+                },
+                "width": 25,
+            },
             "3_input": {
                 "header": {"value": "Input"},
                 "data": {"value": self._render("input")},
@@ -173,9 +181,16 @@ class ReportStockCardReportXlsx(models.AbstractModel):
                 render_space={
                     "date": line.date or "",
                     "reference": line.reference or "",
-                    "input": line.product_in or 0,
-                    "output": line.product_out or 0,
-                    "balance": balance,
+                    "origin": line.reference or "",
+                    "input_qty": line.product_in_qty or 0,
+                    "input_cost": line.product_in_cost or 0,
+                    "input_value": line.product_in_value or 0,
+                    "output_qty": line.product_out_qty or 0,
+                    "output_cost": line.product_out_cost or 0,
+                    "output_value": line.product_out_value or 0,
+                    "balance_qty": balance_qty,
+                    "balance_cost": balance_cost,
+                    "balance_value": balance_value,
                 },
                 default_format=self.format_tcell_amount_right,
             )

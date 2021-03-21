@@ -9,31 +9,32 @@ class StockCardView(models.TransientModel):
     _description = "Stock Card View - MSA"
     _order = "date"
 
+    is_initial = fields.Boolean()
+
     date = fields.Datetime()
     product_id = fields.Many2one(comodel_name="product.product")
     product_qty = fields.Float()
-    product_uom_qty = fields.Float()
-    product_uom = fields.Many2one(comodel_name="uom.uom")
     reference = fields.Char()
     location_id = fields.Many2one(comodel_name="stock.location")
     location_dest_id = fields.Many2one(comodel_name="stock.location")
-    is_initial = fields.Boolean()
-    product_in = fields.Float()
-    product_out = fields.Float()
+    origin = fields.Char()
 
-    date_alt = fields.Datetime()
     price_unit = fields.Float()
     price_unit_value = fields.Float()
-    origin = fields.Char()
-    origin_alt = fields.Char()
-    reference_alt = fields.Char()
     picking_code = fields.Char()
     am_name = fields.Char()
     am_si_number = fields.Char()
 
+    product_int = fields.Float()
+    product_int_cost = fields.Float()
+    product_int_value = fields.Float()
+
+    product_in = fields.Float()
     product_in_cost = fields.Float()
-    product_out_cost = fields.Float()
     product_in_value = fields.Float()
+
+    product_out = fields.Float()
+    product_out_cost = fields.Float()
     product_out_value = fields.Float()
 
 
@@ -65,46 +66,50 @@ class StockCardReport(models.TransientModel):
                 move.date,
                 move.product_id, 
                 move.product_qty, 
-                move.product_uom,
                 move.reference,
-                move.product_qty,
                 move.location_id, 
                 move.location_dest_id,
-
                 move.origin,
-                move.price_unit,
-                move.price_unit*move.product_qty AS price_unit_value, 
+
+                sml.unit_cost AS price_unit,
+                sml.value AS price_unit_value, 
                 spt.code AS picking_code,
                 
                 am.name AS am_name,
                 am.x_ref_sales_invoice AS am_si_number,
 
-                CASE WHEN spt.code = 'incoming' 
+                CASE WHEN spt.code IS null
+                    THEN move.product_qty END AS product_int,
+                CASE WHEN spt.code IS null
+                    THEN sml.unit_cost END AS product_int_cost,
+                CASE WHEN spt.code IS null
+                    THEN sml.value END AS product_int_value,
+
+                CASE WHEN spt.code = 'incoming'
                     THEN move.product_qty END AS product_in,
+                CASE WHEN spt.code = 'incoming'
+                    THEN sml.unit_cost END AS product_in_cost,
                 CASE WHEN spt.code = 'incoming' 
-                    THEN pol.price_unit END AS product_in_cost,
-                CASE WHEN spt.code = 'incoming' 
-                    THEN move.product_qty*pol.price_unit END AS product_in_value,
+                    THEN sml.value END AS product_in_value,
 
                 CASE WHEN spt.code = 'outgoing'
                     THEN move.product_qty END AS product_out,
                 CASE WHEN spt.code = 'outgoing' 
-                    THEN aml.price_unit END AS product_out_cost,
+                    THEN aml.purchase_price END AS product_out_cost,
                 CASE WHEN spt.code = 'outgoing' 
                     THEN move.product_qty*aml.purchase_price END AS product_out_value,
-
-                CASE WHEN move.date < %s THEN True else False end as is_initial
+                CASE WHEN move.date < %s THEN True ELSE False END AS is_initial
 
             FROM stock_move move
 
             LEFT JOIN (SELECT id, code FROM stock_picking_type) AS spt ON move.picking_type_id=spt.id
             LEFT JOIN (SELECT id, price_unit FROM purchase_order_line) AS pol ON move.purchase_line_id=pol.id
             LEFT JOIN (SELECT id, name, invoice_origin, x_ref_sales_invoice, invoice_date FROM account_move) AS am ON am.invoice_origin=move.origin
-            LEFT JOIN (SELECT id, move_id, product_id, price_unit FROM account_move_line WHERE product_id IS NOT null) AS aml ON aml.move_id=am.id AND aml.product_id=move.product_id
+            LEFT JOIN (SELECT id, move_id, product_id, purchase_price FROM account_move_line WHERE product_id IS NOT null) AS aml ON aml.move_id=am.id AND aml.product_id=move.product_id
+            LEFT JOIN (SELECT unit_cost, value, stock_move_id FROM stock_valuation_layer) AS sml ON sml.stock_move_id=move.id
 
-            WHERE spt.code IN ('incoming', 'outgoing')
-                and move.state = 'done' and move.product_id in %s
-                and CAST(move.date AS date) <= %s
+            WHERE move.state = 'done' and move.product_id in %s
+                AND CAST(move.date AS date) <= %s
             ORDER BY move.date, move.reference
         """,
             (
@@ -118,21 +123,25 @@ class StockCardReport(models.TransientModel):
         self.results = [ReportLine.new(line).id for line in stock_card_results]
 
     def _get_initial(self, product_line):
+        product_int_qty = sum(product_line.mapped("product_int"))
         product_input_qty = sum(product_line.mapped("product_in"))
         product_output_qty = sum(product_line.mapped("product_out"))
-        return product_input_qty - product_output_qty
+        return product_int_qty + product_input_qty - product_output_qty
     
-    def _get_initial_value(self, product_line):
-        product_input_value = sum(product_line.mapped("product_in_value"))
-        product_output_value = sum(product_line.mapped("product_out_value"))
-        return product_input_value - product_output_value
-
     def _get_initial_cost(self, initial_value, initial):
         if initial == 0:
-            initial_cost = 0.00
+            initial_cost = 0
         else:
             initial_cost = initial_value / initial
         return initial_cost
+
+    def _get_initial_value(self, product_line):
+        product_int_value = sum(product_line.mapped("product_int_value"))
+        product_input_value = sum(product_line.mapped("product_in_value"))
+        product_output_value = sum(product_line.mapped("product_out_value"))
+        return product_int_value + product_input_value - product_output_value
+
+    
 
     def print_report(self, report_type="qweb"):
         self.ensure_one()
